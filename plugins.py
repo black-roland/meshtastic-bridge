@@ -571,9 +571,10 @@ class AprsPlugin(Plugin):
     def get_igate_telemetry(self):
         nodes_cnt = len(self.interface.nodesByNum.values())
 
-        hour_ago = datetime.now() - timedelta(hours=1)
-        hour_ago_ts = int(hour_ago.timestamp())
-        online_cnt = sum(1 for n in self.interface.nodes.values() if n.get("lastHeard", 0) > hour_ago_ts)
+        # https://github.com/meshtastic/Meshtastic-Apple/blob/4a7f5a261fc2762324623b7f7e6e238b48dda261/Meshtastic/Extensions/CoreData/NodeInfoEntityExtension.swift#L55-L61
+        two_hours_ago = datetime.now() - timedelta(hours=2)
+        two_hours_ago_ts = int(two_hours_ago.timestamp())
+        online_cnt = sum(1 for n in self.interface.nodes.values() if n.get("lastHeard", 0) > two_hours_ago_ts)
 
         return [online_cnt, nodes_cnt]
 
