@@ -7,6 +7,7 @@ import logging
 import os
 import re
 import ssl
+from datetime import datetime, timedelta
 
 plugins = {}
 
@@ -423,6 +424,7 @@ class AprsPlugin(Plugin):
     logger = logging.getLogger(name="meshtastic.bridge.plugin.aprs")
     aprs_servers = {}
     aprs = None
+    telemetry_seq = -1
 
     def configure(self, *args, **kwargs):
         super().configure(*args, **kwargs)
@@ -482,9 +484,20 @@ class AprsPlugin(Plugin):
 
     def report_self_position(self, position):
         from aprslib.packets import PositionReport
+        from aprslib.packets.base import APRSPacket
 
         self.logger.info("Sending IGate beacon...")
 
+        # once at startup
+        if self.telemetry_seq == -1:
+            telemetry_meta_beacon = APRSPacket({
+                "fromcall": self.config["callsign"],
+                "tocall": "APLMB0",
+            })
+            telemetry_meta_beacon.body = f":{self.config["callsign"]}:PARM.OnlineCnt,NodesCnt"
+            self.aprs.sendall(telemetry_meta_beacon)
+
+        telemetry_base91 = self.encode_igate_telemetry(self.get_igate_telemetry())
         igate_beacon = PositionReport({
             "fromcall": self.config["callsign"],
             "tocall": "APLMB0",
@@ -492,7 +505,7 @@ class AprsPlugin(Plugin):
             "symbol": "&",
             "latitude": position["latitude"],
             "longitude": position["longitude"],
-            "comment": self.config["igate"]["comment"],
+            "comment": self.config["igate"]["comment"] + telemetry_base91,
         })
         self.aprs.sendall(igate_beacon)
 
@@ -542,6 +555,27 @@ class AprsPlugin(Plugin):
             raise ValueError("{CALLSIGN} or {SYMBOL} are not defined in device_name_format")
 
         return aprs_data
+
+    def encode_igate_telemetry(self, values):
+        seq = (self.telemetry_seq + 1) % 1000
+        self.telemetry_seq = seq
+
+        encoded = [self.base91_encode(v) for v in [seq] + values]
+        return "|" + "".join(encoded) + "|"
+
+    def base91_encode(self, value):
+        d1 = value // 91
+        d2 = value % 91
+        return chr(d1 + 33) + chr(d2 + 33)
+
+    def get_igate_telemetry(self):
+        nodes_cnt = len(self.interface.nodesByNum.values())
+
+        hour_ago = datetime.now() - timedelta(hours=1)
+        hour_ago_ts = int(hour_ago.timestamp())
+        online_cnt = sum(1 for n in self.interface.nodes.values() if n.get("lastHeard", 0) > hour_ago_ts)
+
+        return [online_cnt, nodes_cnt]
 
 
 plugins["aprs_plugin"] = AprsPlugin()
