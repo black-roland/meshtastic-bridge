@@ -569,12 +569,17 @@ class AprsPlugin(Plugin):
         return chr(d1 + 33) + chr(d2 + 33)
 
     def get_igate_telemetry(self):
-        nodes_cnt = len(self.interface.nodesByNum.values())
+        # `nodesByNum` is used over `nodes` since it includes "unknown" nodes as well:
+        # https://github.com/meshtastic/python/blob/0487ce5e1a7defe2064239a5bb19634b357b00c7/meshtastic/__init__.py#L14
+        nodes = self.interface.nodesByNum.values()
 
+        # iOS/Android app considers a node "online" if we heard from it in the last 2 hours:
         # https://github.com/meshtastic/Meshtastic-Apple/blob/4a7f5a261fc2762324623b7f7e6e238b48dda261/Meshtastic/Extensions/CoreData/NodeInfoEntityExtension.swift#L55-L61
         two_hours_ago = datetime.now() - timedelta(hours=2)
         two_hours_ago_ts = int(two_hours_ago.timestamp())
-        online_cnt = sum(1 for n in self.interface.nodes.values() if n.get("lastHeard", 0) > two_hours_ago_ts)
+        online_cnt = sum(1 for n in nodes if n.get("lastHeard", 0) > two_hours_ago_ts)
+
+        nodes_cnt = len(nodes)
 
         return [online_cnt, nodes_cnt]
 
