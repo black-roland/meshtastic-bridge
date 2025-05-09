@@ -25,7 +25,7 @@ Refer to <https://meshtastic.org/docs/settings/config/wifi#wifi-client> for deta
 Download the code and install it onto a system:
 
 ```
-$ git clone https://github.com/geoffwhittington/meshtastic-bridge.git
+$ git clone https://github.com/black-roland/meshtastic-bridge.git
 ```
 
 Create a Python virtual environment
