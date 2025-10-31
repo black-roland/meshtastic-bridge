@@ -1,0 +1,20 @@
+devices:
+  - name: radio1
+    tcp: 192.168.86.27
+
+pipelines:
+  radio_to_aprs:
+    - message_filter:
+        app:
+          allow:
+            - "POSITION_APP"
+    - aprs_plugin:
+        log_level: debug
+        callsign: N0CALL-15
+        igate:
+          comment: Meshtastic to APRS bridge https://github.com/black-roland/meshtastic-bridge
+        aprs_is:
+          password: '00000'
+          server: rotate.aprs2.ru
+          port: 14580
+        device_name_format: '{CALLSIGN} +APRS{SYMBOL}{COMMENT}'

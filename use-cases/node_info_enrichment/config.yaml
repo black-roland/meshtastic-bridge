@@ -1,0 +1,26 @@
+devices:
+  - name: radio1
+    tcp: 192.168.86.27
+
+mqtt_servers:
+  - name: external
+    server: broker.hivemq.com
+    port: 1883
+    topic: meshtastic/in
+    pipelines:
+      mqtt_to_radio:
+        - radio_message_plugin:
+          device: radio1
+          log_level: debug
+
+pipelines:
+  radio_to_mqtt:
+    - message_filter:
+        app:
+          allow:
+            - "TEXT_MESSAGE_APP"
+    - add_user_info:
+        log_level: debug
+    - mqtt_plugin:
+        name: external
+        topic: meshtastic/out
