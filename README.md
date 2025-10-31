@@ -104,6 +104,8 @@ The following plugins can be used in the `pipelines` section of `config.yaml`:
 | Plugin                 | Description                                                          |
 | ---------------------- | -------------------------------------------------------------------- |
 | `debugger`             | Log the packet to the system console                                 |
+| `add_user_info`        | Enrich packets with user information from node data                  |
+| `aprs_plugin`          | Bridge Meshtastic position data to APRS network                      |
 | `message_filter`       | Filters out packets from the bridge that match a specific criteria   |
 | `location_filter`      | Filters out packets that originate too far from a specified `device` |
 | `webhook`              | Send HTTP requests with custom payloads using packet information     |
@@ -126,6 +128,59 @@ debugger:
 ```
 
 Useful for troubleshooting.
+
+### add_user_info - Enrich packets with user information
+
+- **log_level** `debug` or `info`. Default `info`
+
+This plugin adds user information from node data to packets, including the `longName` field. This is particularly useful when you need to access node user information in subsequent plugins.
+
+For example:
+
+```
+add_user_info:
+  log_level: debug
+```
+
+### aprs_plugin - Bridge Meshtastic position data to APRS network
+
+- **log_level** `debug` or `info`. Default `info`
+- **callsign** Your APRS callsign (e.g., `N0CALL-15`)
+- **aprs_is** APRS-IS server configuration:
+  - **password** APRS-IS password
+  - **server** APRS-IS server hostname
+  - **port** APRS-IS server port
+- **igate** IGate configuration:
+  - **comment** Comment to include in IGate beacon
+- **device_name_format** Format string for parsing callsign, symbol, and comment from node long names. Default: `{CALLSIGN} +APRS{SYMBOL}{COMMENT}`
+
+The plugin automatically:
+- Bridges position packets to APRS network
+- Sends IGate beacons with your bridge's position
+- Includes telemetry data (online/total nodes count) in beacons
+- Parses node information from device long names using configurable format
+
+Supported format macros in `device_name_format`:
+- `{CALLSIGN}` - APRS callsign (required)
+- `{SYMBOL}` - APRS symbol code (required)
+- `{COMMENT}` - Optional comment text
+
+For example:
+
+```
+aprs_plugin:
+  log_level: debug
+  callsign: N0CALL-15
+  igate:
+    comment: Meshtastic to APRS bridge https://github.com/black-roland/meshtastic-bridge
+  aprs_is:
+    password: '00000'
+    server: rotate.aprs2.ru
+    port: 14580
+  device_name_format: '{CALLSIGN} +APRS{SYMBOL}{COMMENT}'
+```
+
+**Russian Documentation**: For a comprehensive guide in Russian on setting up the Meshtastic to APRS bridge, refer to: [Мост из Meshtastic в APRS](https://mansmarthome.info/posts/radio/most-iz-meshtastic-v-aprs/)
 
 ### message_filter - Allow or block packets based on criteria
 
@@ -304,6 +359,70 @@ radio_message_plugin:
   device: remote
   node_mapping:
     12354345: ^all
+```
+
+## Example Use Cases
+
+### Node Information Enrichment
+
+Enrich messages with user information before sending to MQTT:
+
+```yaml
+# use-cases/node_info_enrichment/config.yaml
+devices:
+  - name: radio1
+    tcp: 192.168.86.27
+
+mqtt_servers:
+  - name: external
+    server: broker.hivemq.com
+    port: 1883
+    topic: meshtastic/in
+    pipelines:
+      mqtt_to_radio:
+        - radio_message_plugin:
+          device: radio1
+          log_level: debug
+
+pipelines:
+  radio_to_mqtt:
+    - message_filter:
+        app:
+          allow:
+            - "TEXT_MESSAGE_APP"
+    - add_user_info:
+        log_level: debug
+    - mqtt_plugin:
+        name: external
+        topic: meshtastic/out
+```
+
+### APRS Bridge
+
+Bridge Meshtastic position data to APRS network:
+
+```yaml
+# use-cases/aprs_bridge/config.yaml
+devices:
+  - name: radio1
+    tcp: 192.168.86.27
+
+pipelines:
+  radio_to_aprs:
+    - message_filter:
+        app:
+          allow:
+            - "POSITION_APP"
+    - aprs_plugin:
+        log_level: debug
+        callsign: N0CALL-15
+        igate:
+          comment: Meshtastic to APRS bridge https://github.com/black-roland/meshtastic-bridge
+        aprs_is:
+          password: '00000'
+          server: rotate.aprs2.ru
+          port: 14580
+        device_name_format: '{CALLSIGN} +APRS{SYMBOL}{COMMENT}'
 ```
 
 ## Run the bridge
