@@ -501,7 +501,7 @@ class AprsPlugin(Plugin):
         igate_beacon = PositionReport({
             "fromcall": self.config["callsign"],
             "tocall": "APLMB0",
-            "symbol_table": "L",
+            "symbol_table": "M",
             "symbol": "&",
             "latitude": position["latitude"],
             "longitude": position["longitude"],
