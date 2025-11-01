@@ -493,7 +493,7 @@ class AprsPlugin(Plugin):
                 "fromcall": self.config["callsign"],
                 "tocall": "APLMB0",
             })
-            telemetry_meta_beacon.body = f":{self.config["callsign"]}:PARM.OnlineCnt,NodesCnt"
+            telemetry_meta_beacon.body = f':{self.config["callsign"]}:PARM.OnlineCnt,NodesCnt'
             self.aprs.sendall(telemetry_meta_beacon)
 
         telemetry_base91 = self.encode_igate_telemetry(self.get_igate_telemetry())
