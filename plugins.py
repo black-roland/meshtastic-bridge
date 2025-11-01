@@ -1,6 +1,4 @@
-from haversine import haversine
 from meshtastic import mesh_pb2
-from random import randrange
 import base64
 import json
 import logging
@@ -210,6 +208,7 @@ class LocationFilter(Plugin):
             )
 
         if message_source_position and current_local_position:
+            from haversine import haversine
             distance_km = haversine(message_source_position, current_local_position)
 
             comparison = (
@@ -722,17 +721,16 @@ class RadioMessagePlugin(Plugin):
 plugins["radio_message_plugin"] = RadioMessagePlugin()
 
 
-import time
-from nostr.event import Event
-from nostr.relay_manager import RelayManager
-from nostr.message_type import ClientMessageType
-from nostr.key import PrivateKey, PublicKey
 
 
 class NoStrPlugin(Plugin):
     logger = logging.getLogger(name="meshtastic.bridge.plugin.nostr_send")
 
     def do_action(self, packet):
+        import time
+        from nostr.event import Event
+        from nostr.relay_manager import RelayManager
+        from nostr.key import PrivateKey, PublicKey
         relays = ["wss://nostr-pub.wellorder.net", "wss://relay.damus.io"]
 
         for config_value in ["private_key", "public_key"]:
