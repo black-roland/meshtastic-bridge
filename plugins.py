@@ -575,7 +575,10 @@ class AprsPlugin(Plugin):
         # iOS/Android app considers a node "online" if we heard from it in the last 2 hours:
         # https://github.com/meshtastic/Meshtastic-Apple/blob/4a7f5a261fc2762324623b7f7e6e238b48dda261/Meshtastic/Extensions/CoreData/NodeInfoEntityExtension.swift#L55-L61
         two_hours_ago = datetime.now() - timedelta(hours=2)
-        online_cnt = sum(1 for n in nodes if datetime.fromtimestamp(n.get("lastHeard", 0)) >= two_hours_ago)
+        online_cnt = sum(
+            1 for n in nodes
+            if n.get("lastHeard") and datetime.fromtimestamp(n.get("lastHeard")) >= two_hours_ago
+        )
 
         nodes_cnt = len(nodes)
 
